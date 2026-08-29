@@ -1,0 +1,37 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}#gl,#stage{position:absolute;inset:0;width:100%;height:100%}</style>
+<script src="vendor/three.min.js"></script></head><body>
+<canvas id="gl"></canvas><canvas id="stage"></canvas>
+<script src="10_physics.js"></script><script src="20_store_audio.js"></script><script src="30_render.js"></script><script src="35_gl.js"></script>
+<script>
+R.attach(document.getElementById('stage'), document.getElementById('gl'), true);
+window.scene = function (carId, o) {
+  const car = PH.CARS.find(c => c.id === carId); const spec = PH.buildSpec(car, {}, {});
+  o = Object.assign({ night: false, camXFt: -7, mph: 0, rpm: spec.idle, gear: 1, oppAhead: 12, spinning: false, lights: 'staged', pitch: 0, shake: 0, board: false, rival: '#B02A2A' }, o || {});
+  const L = { pre: true, stage: true, a1: false, a2: false, a3: false, green: false, red: false };
+  if (o.lights === 'amber') L.a1 = true; if (o.lights === 'green') L.green = true; if (o.lights === 'run') { L.pre = L.stage = false; }
+  return { night: o.night, lane: 1, dist: spec.dist, spec, viewStyle: car.view, color: car.color, accent: car.accent, autoShift: false, camX: o.camXFt, pitch: o.pitch, shake: o.shake, speedMph: o.mph,
+    tree: { left: Object.assign({}, L), right: Object.assign({}, L) },
+    opp: o.oppAhead === null ? null : { x: o.camXFt + o.oppAhead, id: carId, view: car.view, color: o.rival, accent: '#eee', spinning: o.spinning, progress: Math.max(0, o.camXFt + o.oppAhead), v: o.mph / 2.237 },
+    player: { progress: Math.max(0, o.camXFt + 6) }, board: { me: o.board ? { et: '12.241', mph: '114.40' } : null, opp: o.board ? { et: '12.226', mph: '115.10' } : null },
+    hud: { rpm: o.rpm, mph: o.mph, limiter: false, shifting: false, gearLabel: String(o.gear), opt: spec.optShift[o.gear - 1] || null, rt: o.lights === 'run' ? '0.031' : '—', et: o.lights === 'run' ? '4.120' : '0.000', heatBar: undefined, msg: null, sub: null, status: null }, safeTop: 47, safeLeft: 0, safeRight: 0, safeBottom: 34, dt: 0.016 };
+};
+window.show = async function (carId, o) {
+  const S = window.scene(carId, o);
+  const car = PH.CARS.find(c => c.id === carId);
+  GL.prime(carId, S.spec, S.opp ? S.opp.color : '#B02A2A');
+  for (let i = 0; i < 300 && GL.carStatus === 'loading'; i++) await new Promise(r => setTimeout(r, 50));
+  R.drawScene(S); R.drawScene(S);
+  return GL.debug();
+};
+window.inspect = async function (carId) {
+  const S = window.scene(carId, { camXFt: 100, oppAhead: 34 });
+  GL.prime(carId, S.spec, '#B02A2A');
+  for (let i = 0; i < 300 && GL.carStatus === 'loading'; i++) await new Promise(r => setTimeout(r, 50));
+  R.drawScene(S);
+  const g = GL._scene.children.find(o => o.userData && o.userData.L && o.type === 'Group');
+  const out = []; const b = new THREE.Box3(), sz = new THREE.Vector3(), c = new THREE.Vector3();
+  g.traverse(o => { if (!o.isMesh) return; b.setFromObject(o); b.getSize(sz); b.getCenter(c); const m = Array.isArray(o.material) ? o.material[0] : o.material; out.push({ n: o.name, m: m && m.name, map: !!(m && m.map), col: m && m.color ? '#' + m.color.getHexString() : null, met: m && m.metalness, rough: m && m.roughness, sz: [+sz.x.toFixed(2), +sz.y.toFixed(2), +sz.z.toFixed(2)], c: [+c.x.toFixed(2), +c.y.toFixed(2), +c.z.toFixed(2)], minY: +b.min.y.toFixed(2), tris: o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3 }); });
+  b.setFromObject(g); b.getSize(sz);
+  return { L: g.userData.L, paint: (g.userData.paint || []).map(m => m.name), wheels: (g.userData.wheels || []).length, extent: [+sz.x.toFixed(2), +sz.y.toFixed(2), +sz.z.toFixed(2)], minY: +b.min.y.toFixed(2), meshes: out.sort((a, b) => b.tris - a.tris) };
+};
+</script></body></html>

@@ -1,0 +1,155 @@
+{
+ "_readme": [
+  "Per-car tuning for the 3D layer. Every field is optional; missing files just mean",
+  "that car keeps its drawn 2D look. Drop processed models in this folder as <id>.glb.",
+  "Fields: file (defaults to <id>.glb), lengthFt (real car length, sets scale),",
+  "yaw (radians so the nose points down the track, away from the camera: 0 or 3.1416; verified per model),",
+  "paintMats [exact material names to recolor], spinWheels (false to disable),",
+  "trackFt / rearAxleZFt / frontAxleZFt / cowlZFt / cowlYFt / chuteYFt (gear-kit anchors),",
+  "kit { slicks, fronts, blower, zoomies, chutes, wheelieBar } to add built parts,",
+  "kitOnly (render only the built running gear - dev/testing), disabled (skip 3D).",
+  "sketchfabUid + author + license feed tools/get-models.mjs and the credits list."
+ ],
+ "cars": {
+  "ctr": {
+   "lengthFt": 15.1,
+   "yaw": 3.1416,
+   "sketchfabUid": "84a92c8e57344dfc8ac175438267f51c",
+   "author": "DRIVER-FIRE",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/2023-honda-civic-type-r-84a92c8e57344dfc8ac175438267f51c",
+   "paintMats": [
+    "M_2023_Honda_Civic_Type_R_Historic_Champonship_White"
+   ],
+   "spinWheels": false
+  },
+  "gt": {
+   "lengthFt": 15.8,
+   "yaw": 3.1416,
+   "sketchfabUid": "1592c80ca5cc4027a2a72a6fad784e1b",
+   "author": "Legendeniuss",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/2024-ford-mustang-gt-low-poly-1592c80ca5cc4027a2a72a6fad784e1b"
+  },
+  "gtr": {
+   "lengthFt": 15.5,
+   "yaw": 0,
+   "sketchfabUid": "48798bab64d7426cb05c1f1bd64cd399",
+   "author": "Car2022 (Mona x Supercars)",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/nissan-gt-r-r35-48798bab64d7426cb05c1f1bd64cd399",
+   "paintMats": []
+  },
+  "hellcat": {
+   "lengthFt": 16.5,
+   "yaw": 3.1416,
+   "sketchfabUid": "f5f86380ecf049da8aa73ca969555e0f",
+   "author": "RPMRender",
+   "license": "Sketchfab Standard",
+   "source": "https://sketchfab.com/3d-models/dodge-challenger-srt-hellcat-widebody-f5f86380ecf049da8aa73ca969555e0f"
+  },
+  "z06": {
+   "lengthFt": 15.5,
+   "yaw": 3.1416,
+   "sketchfabUid": "2e8fa3f002974a689cacefbf341de651",
+   "author": "RPMRender",
+   "license": "Sketchfab Standard",
+   "source": "https://sketchfab.com/3d-models/chevrolet-corvette-c8-z06-performance-package-2e8fa3f002974a689cacefbf341de651",
+   "paintMats": []
+  },
+  "plaid": {
+   "lengthFt": 16.5,
+   "yaw": 3.1416,
+   "sketchfabUid": "d55cd7890b38470bb00a244ec6bea813",
+   "author": "shreyanshchaurasia13",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/2022-tesla-model-s-plaid-d55cd7890b38470bb00a244ec6bea813",
+   "paintMats": [],
+   "groundFt": 0
+  },
+  "demon": {
+   "lengthFt": 16.7,
+   "yaw": 0,
+   "sketchfabUid": "0e79dfd35a3745edab78c7909b0352f7",
+   "author": "RPMRender",
+   "license": "Sketchfab Standard",
+   "source": "https://sketchfab.com/3d-models/dodge-challenger-srt-demon-170-0e79dfd35a3745edab78c7909b0352f7"
+  },
+  "prostock": {
+   "lengthFt": 15.6,
+   "yaw": 0,
+   "sketchfabUid": "2695389f724345cd904ce18d2af1d919",
+   "author": "mansoorsajidp (AMS)",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/1967-chevrolet-camaro-ss-drag-car-free-2695389f724345cd904ce18d2af1d919",
+   "kit": {
+    "chutes": true,
+    "wheelieBar": true
+   },
+   "paintMats": [],
+   "trimFt": {
+    "halfX": 4.6,
+    "maxY": 7.5,
+    "flat": true
+   }
+  },
+  "promod": {
+   "lengthFt": 16.0,
+   "yaw": 0,
+   "sketchfabUid": "14741c906e254f838c9131c7294d04c1",
+   "author": "niev",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/plymouth-barracuda-dragster-1974-14741c906e254f838c9131c7294d04c1",
+   "kit": {
+    "chutes": true,
+    "wheelieBar": true
+   },
+   "rot": [
+    -1.5708,
+    0,
+    0
+   ],
+   "paintMats": [
+    "carpaint"
+   ],
+   "trimFt": {
+    "halfX": 4.5,
+    "maxY": 8.5,
+    "halfZ": 14,
+    "flat": true
+   }
+  },
+  "funny": {
+   "lengthFt": 18.5,
+   "yaw": 0,
+   "sketchfabUid": "0b55884c55fb45bbbdfd6834959b031d",
+   "author": "jfrockon",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/funny-car-0b55884c55fb45bbbdfd6834959b031d",
+   "trackFt": 7.0,
+   "cowlYFt": 3.2,
+   "kit": {
+    "slicks": true,
+    "fronts": true,
+    "blower": true,
+    "zoomies": true,
+    "chutes": true,
+    "wheelieBar": true
+   },
+   "paintMats": [],
+   "groundFt": -0.6
+  },
+  "topfuel": {
+   "lengthFt": 25.5,
+   "yaw": 3.1416,
+   "sketchfabUid": "41256345adb74f9ca1525f35d4f0c9e6",
+   "author": "rhinoart",
+   "license": "CC-BY",
+   "source": "https://sketchfab.com/3d-models/top-fuel-dragster-41256345adb74f9ca1525f35d4f0c9e6",
+   "kit": {
+    "chutes": true
+   },
+   "paintMats": []
+  }
+ }
+}
