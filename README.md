@@ -44,10 +44,10 @@ iOS mutes Web Audio whenever the ring/silent switch (or Action button) is set to
 ## How to race
 
 1. **Burnout** — hold BURNOUT to heat the tires; release when the bar is green. Greasy (red) is worse than cold.
-2. **Stage** — tap STAGE. Pre-stage bulb, then stage bulb. Deep staging (Settings) rolls further in: quicker reaction time, slower ET, easier to red-light — exactly like the real thing.
-3. **Tree** — hold LAUNCH. The engine sits on the two-step at your launch RPM. When both cars are staged, the autostart fires the tree at a random moment. **Release on the last amber**: the car needs real rollout time to clear the beam, so releasing on green is late and releasing early is a red light. Pro tree (.400) or Sportsman tree (.500) in Settings.
+2. **Stage** — press STAGE and keep your thumb down; the car creeps into the beams. Pre-stage bulb, then stage bulb. Deep staging (Settings) rolls further in: quicker reaction time, slower ET, easier to red-light — exactly like the real thing.
+3. **Tree** — keep holding LAUNCH. The engine sits on the two-step at your launch RPM. When both cars are staged, the autostart fires the tree at a random moment. **Let go on the last amber** — letting go is the launch: the car needs real rollout time to clear the beam, so releasing on green is late and releasing early is a red light. Street cars run the sportsman tree (ambers count down .500 apart); the pro cars run the pro tree (all three ambers at once, green .400 later). Settings lets you force either.
 4. **Shift** — the tach shows a green window for each gear. Perfect shifts pay; early ones bog, late ones bounce off the limiter. Auto mode shifts for you at ×0.8 points.
-5. **Wheelspin** — if the tach flares and the car doesn't move, hold LIFT to pedal it. Lower the launch RPM in the garage if it keeps happening; raise it if the car bogs.
+5. **Wheelspin** — if the tach flares and the car doesn't move, hold PEDAL to lift off the gas for a moment. Lower the launch RPM in the garage if it keeps happening; raise it if the car bogs.
 
 The timeslip after every pass shows R/T, 60', 330', 660' with speed, 1000', ET and trap speed for both lanes, the margin, a holeshot flag, and the points breakdown.
 

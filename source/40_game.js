@@ -28,21 +28,25 @@ const Game = (function () {
 
   /* ---------------- profile ---------------- */
   const defaultProfile = () => ({
-    v: 1, name: 'DRIVER', points: 800, car: 'ctr', owned: ['ctr'], upgrades: {}, tuning: {}, bests: {},
+    v: 2, name: 'DRIVER', points: 800, car: 'ctr', owned: ['ctr'], upgrades: {}, tuning: {}, bests: {},
     stats: { races: 0, wins: 0, holeshots: 0, redLights: 0, perfectShifts: 0, perfectLights: 0, streak: 0, bestStreak: 0, tournamentsWon: 0, drills: 0, bestDrillAvg: null, goodBurnouts: 0 },
     challenges: {},
-    settings: { sound: true, route: 'media', tree: 'pro', auto: false, night: false, difficulty: 'pro', lane: 'right', deep: false, seenHow: false },
+    settings: { sound: true, route: 'media', tree: 'auto', auto: false, night: false, difficulty: 'pro', lane: 'right', deep: false, seenHow: false },
   });
   let P = defaultProfile();
   let saveTimer = null;
   function save() { clearTimeout(saveTimer); saveTimer = setTimeout(() => Store.set('hs:profile', P, false), 150); }
   async function load() {
     const p = await Store.get('hs:profile', false);
-    if (p && p.v === 1) { P = Object.assign(defaultProfile(), p); P.stats = Object.assign(defaultProfile().stats, p.stats || {}); P.settings = Object.assign(defaultProfile().settings, p.settings || {}); }
+    if (p && (p.v === 1 || p.v === 2)) {
+      P = Object.assign(defaultProfile(), p); P.stats = Object.assign(defaultProfile().stats, p.stats || {}); P.settings = Object.assign(defaultProfile().settings, p.settings || {});
+      if (p.v === 1) { P.v = 2; if (P.settings.tree === 'pro') P.settings.tree = 'auto'; save(); } // v1 defaulted everyone to the pro tree
+    }
     return P;
   }
   function reset() { P = defaultProfile(); save(); }
   const carById = (id) => PH.CARS.find(c => c.id === id);
+  function treeFor(car) { const t = P.settings.tree || 'auto'; return t === 'auto' ? (car.tier >= 8 ? 'pro' : 'full') : t; }
   function upgradesFor(id) { P.upgrades[id] = P.upgrades[id] || { engine: 0, boost: 0, tires: 0, trans: 0, weight: 0 }; return P.upgrades[id]; }
   function tuningFor(id) { const c = carById(id); P.tuning[id] = P.tuning[id] || { launchRpm: c.launchRpm }; return P.tuning[id]; }
   function specFor(id) { const c = carById(id); return PH.buildSpec(c, upgradesFor(id), Object.assign({ deep: P.settings.deep }, tuningFor(id))); }
@@ -81,10 +85,10 @@ const Game = (function () {
     const aiUp = { engine: 0, boost: 0, tires: 0, trans: 0, weight: 0 };
     const aiSpec = PH.buildSpec(Object.assign({}, car, { hp: car.hp * diff.perf, mu: car.mu * (1 + 0.5 * (diff.perf - 1)) }), aiUp, { launchRpm: recommendedLaunchStock(car) });
     const r = {
-      mode: opts.mode, diff, round: opts.round || 1, drillN: 0, drillRTs: [], solo,
+      mode: opts.mode, diff, round: opts.round || 1, drillN: 0, drillRTs: [], solo, treeType: treeFor(car),
       car, spec, aiSpec, laneSign, phase: 'burnout', t0: now(), clock: 0,
-      player: { run: PH.newRun(spec), staged: false, prestage: false, stageT: null, holding: false, launchedAt: null, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), lift: false, msgs: [], heat: 0.55 },
-      ai: { run: PH.newRun(aiSpec), staged: false, prestage: false, stageAt: null, releaseAt: null, launched: false, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), shiftPlan: null, nextShiftRpm: null, name: car.rival, color: RIVAL_COLORS[car.tier % RIVAL_COLORS.length] },
+      player: { run: PH.newRun(spec), staged: false, prestage: false, stageT: null, holding: false, launchedAt: null, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), lift: false, msgs: [], heat: 0.55, creep: -4 },
+      ai: { run: PH.newRun(aiSpec), staged: false, prestage: false, stageAt: null, releaseAt: null, launched: false, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), shiftPlan: null, nextShiftRpm: null, name: car.rival, color: RIVAL_COLORS[car.tier % RIVAL_COLORS.length], creep: -4 },
       bothStagedAt: null, autostartAt: null, treeFired: false, finishedAt: null, result: null,
       dial: opts.dial, aiDial: null, handicap: 0, target: opts.target || null, burnoutDone: false, burnoutGood: false,
     };
@@ -123,8 +127,8 @@ const Game = (function () {
     race.phase = ph; race.phaseT = race.clock;
     ui.phase(ph, race);
     if (ph === 'burnout') coach('Hold BURNOUT to heat the tires — release in the green');
-    if (ph === 'staging') coach('Tap STAGE to roll into the beams');
-    if (ph === 'staged') coach(race.mode === 'drill' ? 'Hold LAUNCH. Release on the last amber.' : 'Hold LAUNCH. The tree fires when both cars are in. Release on the last amber.');
+    if (ph === 'staging') coach('Press STAGE and keep your thumb down to roll in');
+    if (ph === 'staged') coach(race.player.holding ? 'Staged. Watch the ambers — let go on the last one' : 'Hold LAUNCH, then let go on the last amber');
     if (ph === 'run') coach(null);
   }
   function coach(text) { ui.coach(text); }
@@ -135,15 +139,16 @@ const Game = (function () {
   function leftDown(e) {
     if (!race) return; const t = evTime(e);
     if (race.phase === 'burnout') { race.player.burning = true; }
-    else if (race.phase === 'staging') { if (race.player.stageT === null) { race.player.stageT = race.clock; Sfx.stageClick(); coach('Now hold LAUNCH and wait for the tree'); ui.phase('rolling', race); } else { race.player.holding = true; race.player.holdAt = t; } }
+    else if (race.phase === 'staging') { race.player.holding = true; race.player.holdAt = t; if (race.player.stageT === null) { race.player.stageT = race.clock; Sfx.stageClick(); coach('Keep holding — release on the last amber'); ui.phase('rolling', race); } }
     else if (race.phase === 'staged' || race.phase === 'tree') { race.player.holding = true; race.player.holdAt = t; if (!race.autostartAt && race.bothStagedAt !== null) armTree(); coach(race.phase === 'staged' ? 'Watch the ambers…' : null); }
     else if (race.phase === 'run') { race.player.lift = true; }
   }
   function leftUp(e) {
     if (!race) return; const t = evTime(e);
     if (race.phase === 'burnout') { race.player.burning = false; }
-    else if (race.phase === 'staging') { race.player.holding = false; }
-    else if ((race.phase === 'staged' || race.phase === 'tree') && race.player.holding) { race.player.holding = false; doLaunch(t); }
+    else if (race.phase === 'staging') { race.player.holding = false; coach('Hold LAUNCH, then release on the last amber'); }
+    else if (race.phase === 'staged') { const short = race.player.holding && t - race.player.holdAt < 0.15; race.player.holding = false; if (short) coach('Hold LAUNCH — release when the ambers flash'); else doLaunch(t); }
+    else if (race.phase === 'tree') { race.player.holding = false; doLaunch(t); }
     else if (race.phase === 'run') { race.player.lift = false; }
   }
   function rightDown(e) {
@@ -175,7 +180,7 @@ const Game = (function () {
     if (race.treeStart === undefined || race.treeStart === null) { race.treeStart = race.clock; scheduleTree(); }
   }
   function scheduleTree() {
-    const pro = P.settings.tree === 'pro';
+    const pro = race.treeType === 'pro';
     const len = pro ? 0.4 : 1.5;
     // handicap: the lane with the slower dial leaves first
     const pDelay = race.handicap < 0 ? -race.handicap : 0, aDelay = race.handicap > 0 ? race.handicap : 0;
@@ -185,7 +190,7 @@ const Game = (function () {
     race.treeFired = true;
   }
   function updateLights(lane, t) {
-    const pro = P.settings.tree === 'pro'; const ts = lane.treeStart; if (ts === null || ts === undefined) return;
+    const pro = race.treeType === 'pro'; const ts = lane.treeStart; if (ts === null || ts === undefined) return;
     const L = lane.lights;
     if (pro) { const on = t >= ts && t < ts + 0.4 + 0.5; L.a1 = L.a2 = L.a3 = on && t < ts + 0.4; }
     else { L.a1 = t >= ts && t < ts + 0.5; L.a2 = t >= ts + 0.5 && t < ts + 1.0; L.a3 = t >= ts + 1.0 && t < ts + 1.5; }
@@ -219,15 +224,17 @@ const Game = (function () {
       case 'staging': {
         { const target = p.holding ? race.spec.launchRpm : race.spec.idle; pr.rpm += (target - pr.rpm) * Math.min(1, dt * 12); }
         if (p.stageT !== null) {
-          const e = t - p.stageT;
-          if (e > 0.5 && !p.lights.pre) { p.lights.pre = true; Sfx.stageClick(); }
-          if (e > 1.15 && !p.lights.stage) { p.lights.stage = true; p.staged = true; Sfx.stageClick(); }
-          if (P.settings.deep && e > 1.7 && p.lights.pre) { p.lights.pre = false; }
+          const target = P.settings.deep ? 0.55 : 0;
+          p.creep = Math.min(target, p.creep + 1.7 * dt);
+          if (p.creep >= -0.65 && !p.lights.pre) { p.lights.pre = true; Sfx.stageClick(); }
+          if (p.creep >= -0.01 && !p.lights.stage) { p.lights.stage = true; p.staged = true; Sfx.stageClick(); }
+          if (P.settings.deep && p.creep >= 0.5 && p.lights.pre) { p.lights.pre = false; }
         }
         if (!race.solo) {
           if (a.stageAt === null) a.stageAt = t + rand(0.3, 2.2);
-          if (t > a.stageAt + 0.5) a.lights.pre = true;
-          if (t > a.stageAt + 1.15) { a.lights.stage = true; a.staged = true; }
+          if (t > a.stageAt) a.creep = Math.min(0, a.creep + 1.7 * dt);
+          if (a.creep >= -0.65) a.lights.pre = true;
+          if (a.creep >= -0.01) { a.lights.stage = true; a.staged = true; }
         } else a.staged = true;
         if (p.staged && a.staged && (!P.settings.deep || !p.lights.pre)) { race.bothStagedAt = t; setPhase('staged'); if (p.holding) armTree(); }
         break;
@@ -246,7 +253,7 @@ const Game = (function () {
       case 'done': {
         const tStep = t - dt;
         if (race.treeFired) { updateLights(p, t); if (!race.solo) updateLights(a, t); }
-        if (race.phase === 'tree' && !pr.launched && p.green !== null && t > p.green + 6) { p.holding = false; doLaunch(t); }
+        if (race.phase === 'tree' && !pr.launched && p.green !== null && t > p.green + 8 && (race.solo || ar.finished) && race.finishedAt === null && race.mode !== 'drill') { p.neverLeft = true; race.finishedAt = t; setPhase('done'); msg('NO TIME', '#ff5b6a', 'You never left the line'); }
         if (race.phase === 'tree') {
           const target = p.holding ? race.spec.launchRpm : race.spec.idle;
           pr.rpm += (target - pr.rpm) * Math.min(1, dt * 12);
@@ -311,7 +318,7 @@ const Game = (function () {
       if (!race) return;
       if (race.drillN >= 5) { finishDrill(); return; }
       // reset for the next tree
-      race.player = Object.assign(race.player, { run: PH.newRun(race.spec), staged: false, prestage: false, stageT: null, holding: false, launchedAt: null, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), lift: false, drillDone: false });
+      race.player = Object.assign(race.player, { run: PH.newRun(race.spec), staged: false, prestage: false, stageT: null, holding: false, launchedAt: null, rt: null, foul: false, green: null, treeStart: null, lights: blankLights(), lift: false, drillDone: false, creep: -4 });
       race.player.run.tireHeat = 1.0;
       race.ai.lights = blankLights(); race.ai.staged = false;
       S.tree.left = race.laneSign === -1 ? race.player.lights : race.ai.lights; S.tree.right = race.laneSign === 1 ? race.player.lights : race.ai.lights;
@@ -348,6 +355,7 @@ const Game = (function () {
       else if (pBreak && aBreak) { win = (race.dial - pr.et) < (race.aiDial - ar.et); reason = 'Both broke out — smaller breakout wins'; }
       else if (pBreak) { win = false; reason = 'Broke out (ran under your dial)'; }
       else if (aBreak) { win = true; reason = 'Rival broke out'; }
+      else if (!pr.launched) { win = false; reason = 'Never left the line'; }
       else if (!pr.finished) { win = false; reason = 'Did not finish'; }
       else { win = pTotal < aTotal; reason = win ? 'First to the stripe' : 'Rival got there first'; }
     }
@@ -358,12 +366,13 @@ const Game = (function () {
     const lines = [];
     const add = (label, v) => { v = Math.round(v); if (v) lines.push([label, v]); };
     if (p.foul) { add('Red light — no purse', 0); add('Show-up money', base * 0.1); }
+    else if (!pr.launched) { add('No time — no purse', 0); add('Show-up money', base * 0.1); }
     else {
       add('Completed pass', base);
       if (race.mode !== 'clock') add(win ? (race.mode === 'bracket' ? 'Bracket win' : 'Win light') : 'Runner-up', win ? base : base * 0.25);
       else if (win) add('Beat the clock', base * 2);
       if (holeshot) add('Holeshot win', base * 0.5);
-      const g = PH.gradeRT(p.rt); if (g.pts) add(g.label, g.pts);
+      if (p.rt !== null) { const g = PH.gradeRT(p.rt); if (g.pts) add(g.label, g.pts); }
       const perf = pr.shifts.filter(s => s.grade === 'perfect').length;
       if (!S.autoShift && perf) add('Perfect shifts ×' + perf, perf * 40);
       if (!S.autoShift && pr.shifts.length >= 3 && perf === pr.shifts.length) add('All perfect', 200);
@@ -419,14 +428,14 @@ const Game = (function () {
   /* ---- render bridge ---- */
   function render() {
     const p = race.player, pr = p.run, ar = race.ai.run, spec = race.spec;
-    const noseFt = -pr.rollout / FT + pr.x / FT;
+    const noseFt = p.creep - pr.rollout / FT + pr.x / FT;
     const eyeBack = spec.view === 'dragster' ? 20 : spec.view === 'funny' ? 4 : 6;
     S.camX = noseFt - eyeBack;
     S.pitch = pr.wheelie * 0.8 + (pr.launched ? clamp(pr.a / 40, -0.25, 0.3) : 0);
     S.shake = clamp(pr.a / 60, 0, 1) * 0.5 + (pr.spinning ? 0.5 : 0) + (p.burning ? 0.35 : 0) + clamp((pr.mph - 150) / 250, 0, 1) * 0.4;
     S.speedMph = pr.mph;
     S.player.progress = Math.max(0, (pr.x - pr.rollout) / FT);
-    if (S.opp) { S.opp.x = -ar.rollout / FT + ar.x / FT; S.opp.spinning = ar.spinning && ar.launched; S.opp.progress = Math.max(0, (ar.x - ar.rollout) / FT); }
+    if (S.opp) { S.opp.x = race.ai.creep - ar.rollout / FT + ar.x / FT; S.opp.spinning = ar.spinning && ar.launched; S.opp.progress = Math.max(0, (ar.x - ar.rollout) / FT); }
     const h = S.hud;
     h.rpm = pr.rpm; h.mph = pr.mph; h.limiter = pr.limiter; h.shifting = pr.shifting > 0;
     h.gearLabel = pr.coast ? 'N' : spec.trans === 'none' ? 'D' : spec.trans === 'single' ? '1' : (pr.launched || p.holding ? String(pr.gear + 1) : 'N');
@@ -436,12 +445,12 @@ const Game = (function () {
     const etNow = pr.finished ? pr.et : (pr.beamExitT !== null ? race.clock - pr.beamExitT : 0);
     h.et = etNow.toFixed(3);
     h.heatBar = race.phase === 'burnout' ? p.heat : undefined;
-    h.status = pr.coast ? { text: race.spec.chute ? 'CHUTES OUT' : 'SHUTDOWN', col: '#d9d3c4' } : pr.launched && pr.spinning ? { text: 'WHEELSPIN — LIFT', col: '#ff5b6a' } : pr.launched && pr.bog && race.clock - pr.launchT < 1.2 ? { text: 'BOGGED', col: '#ffb000' } : (race.phase === 'burnout' ? { text: p.heat > 1.18 ? 'GREASY' : p.heat >= 0.95 ? 'TIRES READY' : 'COLD TIRES', col: p.heat > 1.18 ? '#ff5b6a' : p.heat >= 0.95 ? '#2be35a' : '#ffb000' } : null);
+    h.status = pr.coast ? { text: race.spec.chute ? 'CHUTES OUT' : 'SHUTDOWN', col: '#d9d3c4' } : pr.launched && pr.spinning ? { text: 'WHEELSPIN — PEDAL', col: '#ff5b6a' } : pr.launched && pr.bog && race.clock - pr.launchT < 1.2 ? { text: 'BOGGED', col: '#ffb000' } : (race.phase === 'burnout' ? { text: p.heat > 1.18 ? 'GREASY' : p.heat >= 0.95 ? 'TIRES READY' : 'COLD TIRES', col: p.heat > 1.18 ? '#ff5b6a' : p.heat >= 0.95 ? '#2be35a' : '#ffb000' } : null);
     if (p.burning) { const W = R.W, H = R.H; R.spawnSmoke(W * 0.08, H * 0.62, 1, 60, 30, -20); R.spawnSmoke(W * 0.92, H * 0.62, 1, 60, -30, -20); }
     if (pr.launched && pr.spinning) { const W = R.W, H = R.H; R.spawnSmoke(W * 0.05, H * 0.6, 1, 40, 20, -30); R.spawnSmoke(W * 0.95, H * 0.6, 1, 40, -20, -30); }
     S.safeTop = ui.safe.top; S.safeLeft = ui.safe.left; S.safeRight = ui.safe.right; S.safeBottom = ui.safe.bottom;
     R.drawScene(S);
   }
 
-  return { DIFF, CHALLENGES, load, save, reset, get P() { return P; }, carById, upgradesFor, tuningFor, specFor, dyno, recommendedLaunch, buyCar, buyUpgrade, start, stop, quit, leftDown, leftUp, rightDown, skipBurnout, getLeaderboard, get race() { return race; }, setUI(u) { ui = u; }, S };
+  return { DIFF, CHALLENGES, load, save, reset, get P() { return P; }, carById, treeFor, upgradesFor, tuningFor, specFor, dyno, recommendedLaunch, buyCar, buyUpgrade, start, stop, quit, leftDown, leftUp, rightDown, skipBurnout, getLeaderboard, get race() { return race; }, setUI(u) { ui = u; }, S };
 })();

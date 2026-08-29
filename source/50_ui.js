@@ -25,7 +25,7 @@ const UI = (function () {
     c.clearRect(0, 0, W, H);
     const cycle = (ts / 1000) % 5.2; // staging, ambers, green, hold, dark
     const st = { pre: cycle > 0.6, stage: cycle > 1.4, a1: false, a2: false, a3: false, green: false, red: false };
-    const tree = Game.P.settings.tree;
+    const tree = Game.treeFor(Game.carById(Game.P.car));
     const t0 = 2.6;
     if (tree === 'pro') { st.a1 = st.a2 = st.a3 = cycle > t0 && cycle < t0 + 0.4; st.green = cycle >= t0 + 0.4 && cycle < 4.6; }
     else { st.a1 = cycle > t0 && cycle < t0 + 0.5; st.a2 = cycle > t0 + 0.5 && cycle < t0 + 1.0; st.a3 = cycle > t0 + 1.0 && cycle < t0 + 1.5; st.green = cycle >= t0 + 1.5 && cycle < 4.6; }
@@ -44,7 +44,7 @@ const UI = (function () {
     const done = Game.CHALLENGES.filter(c => P.challenges[c.id]).length;
     $('#mChalSub').textContent = `${done} of ${Game.CHALLENGES.length} complete`;
     $('#saveNote').style.display = Store.kind === 'memory' ? 'block' : 'none';
-    $('#mRaceSub').textContent = `Quick race · ${Game.DIFF[P.settings.difficulty].label} · ${P.settings.auto ? 'auto shift' : 'manual'}`;
+    $('#mRaceSub').textContent = `Quick race · ${Game.DIFF[P.settings.difficulty].label} · ${P.settings.auto ? 'auto shift' : 'manual'} · ${Game.treeFor(car) === 'pro' ? 'pro tree' : 'sportsman tree'}`;
     show('menu');
     if (!menuTreeRaf) menuTreeRaf = requestAnimationFrame(drawMenuTree);
   }
@@ -159,7 +159,7 @@ const UI = (function () {
     $('#setName').value = P.name;
     $('#setName').onchange = () => { P.name = ($('#setName').value.trim().toUpperCase() || 'DRIVER').slice(0, 12); $('#setName').value = P.name; Game.save(); };
     seg('#segShift', s.auto ? 'auto' : 'manual', v => { s.auto = v === 'auto'; Game.save(); });
-    seg('#segTree', s.tree, v => { s.tree = v; Game.save(); });
+    seg('#segTree', s.tree || 'auto', v => { s.tree = v; Game.save(); });
     seg('#segStage', s.deep ? 'deep' : 'shallow', v => { s.deep = v === 'deep'; Game.save(); });
     seg('#segLane', s.lane, v => { s.lane = v; Game.save(); });
     seg('#segTime', s.night ? 'night' : 'day', v => { s.night = v === 'night'; Game.save(); });
@@ -174,40 +174,41 @@ const UI = (function () {
 
   /* ---------- race screen ---------- */
   const btnL = () => $('#btnL'), btnR = () => $('#btnR');
-  function enterRace() { $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
+  function enterRace() { lPressed = false; btnL().classList.remove('held'); $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
   function leaveRace() { $('#slip').classList.remove('on'); renderMenu(); }
   function setBtn(btn, label, sub, on) { btn.innerHTML = label + (sub ? `<span class="sub">${sub}</span>` : ''); btn.classList.toggle('on', !!on); }
   function phase(ph, race) {
     const L = btnL(), Rb = btnR(), autoShift = Game.S.autoShift;
     $('#skipBtn').classList.toggle('on', ph === 'burnout');
-    L.classList.remove('held');
     if (ph === 'burnout') { setBtn(L, 'BURNOUT', 'hold', true); setBtn(Rb, '', '', false); }
     else if (ph === 'staging') { setBtn(L, 'STAGE', 'tap to roll in', true); setBtn(Rb, '', '', false); }
-    else if (ph === 'rolling' || ph === 'staged' || ph === 'tree') { setBtn(L, 'LAUNCH', 'hold · release to go', true); setBtn(Rb, '', '', false); }
-    else if (ph === 'run') { setBtn(L, 'LIFT', 'hold to pedal', true); if (!autoShift) { setBtn(Rb, 'SHIFT', '', true); Rb.classList.add('shift'); } else setBtn(Rb, '', '', false); }
+    else if (ph === 'rolling' || ph === 'staged' || ph === 'tree') { setBtn(L, 'LAUNCH', 'hold · release on the amber', true); setBtn(Rb, '', '', false); }
+    else if (ph === 'run') { setBtn(L, 'PEDAL', 'hold to lift off the gas', true); if (!autoShift) { setBtn(Rb, 'SHIFT', '', true); Rb.classList.add('shift'); } else setBtn(Rb, '', '', false); }
     else if (ph === 'done') { setBtn(L, '', '', false); setBtn(Rb, '', '', false); }
     else { setBtn(L, '', '', false); setBtn(Rb, '', '', false); }
   }
   function coach(text) { const c = $('#coach'); if (!text) { c.classList.remove('on'); return; } c.textContent = text; c.classList.add('on'); }
+  let lPressed = false;
   function bindRaceButtons() {
     const L = btnL(), Rb = btnR();
-    const down = (e) => { e.preventDefault(); L.classList.add('held'); Game.leftDown(e); };
-    const up = (e) => { e.preventDefault(); if (!L.classList.contains('held')) return; L.classList.remove('held'); Game.leftUp(e); };
+    // The press state lives here, not in a CSS class, so relabeling the button mid-hold can't lose the release.
+    const down = (e) => { if (e.cancelable) e.preventDefault(); if (lPressed) return; lPressed = true; L.classList.add('held'); Game.leftDown(e); };
+    const up = (e) => { if (e.cancelable) e.preventDefault(); if (!lPressed) return; lPressed = false; L.classList.remove('held'); Game.leftUp(e); };
     L.addEventListener('pointerdown', (e) => { try { L.setPointerCapture(e.pointerId); } catch (x) {} down(e); });
     L.addEventListener('pointerup', up); L.addEventListener('pointercancel', up);
+    window.addEventListener('pointerup', (e) => { if (lPressed) up(e); }); // capture lost for any reason: still a release
     L.addEventListener('contextmenu', e => e.preventDefault());
     Rb.addEventListener('pointerdown', (e) => { e.preventDefault(); Game.rightDown(e); });
     Rb.addEventListener('contextmenu', e => e.preventDefault());
     $('#skipBtn').onclick = () => Game.skipBurnout();
     armConfirm($('#quitBtn'), 'Quit', 'Tap again to quit', () => Game.quit());
     // keyboard for desktop demos
-    let spaceHeld = false;
     window.addEventListener('keydown', (e) => {
       if (!Game.race) return;
-      if (e.code === 'Space' && !spaceHeld) { spaceHeld = true; e.preventDefault(); L.classList.add('held'); Game.leftDown(e); }
+      if (e.code === 'Space' && !e.repeat) down(e);
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyS') { e.preventDefault(); Game.rightDown(e); }
     });
-    window.addEventListener('keyup', (e) => { if (!Game.race) return; if (e.code === 'Space') { spaceHeld = false; e.preventDefault(); L.classList.remove('held'); Game.leftUp(e); } });
+    window.addEventListener('keyup', (e) => { if (!Game.race) return; if (e.code === 'Space') up(e); });
   }
 
   /* ---------- timeslip ---------- */
@@ -215,7 +216,7 @@ const UI = (function () {
     const paper = $('#paper'); let html = '';
     const P = Game.P;
     if (res.drill) {
-      html += `<div class="hdr">Practice tree<small>${P.settings.tree === 'pro' ? 'PRO TREE .400' : 'SPORTSMAN TREE .500'} · 60-FOOT DASHES</small></div>`;
+      html += `<div class="hdr">Practice tree<small>${race.treeType === 'pro' ? 'PRO TREE .400' : 'SPORTSMAN TREE .500'} · 60-FOOT DASHES</small></div>`;
       html += '<table>' + res.rts.map((r, i) => `<tr><td>Tree ${i + 1}</td><td>${r === null ? '<span class="grade red">RED</span>' : fmt(r) + gradeChip(r)}</td></tr>`).join('') + `<tr class="win"><td>Average (reds count .500)</td><td>${fmt(res.avg)}</td></tr></table>`;
       html += `<div class="pts"><div><span>Drill payout</span><span>+${num(res.pts)}</span></div>${res.newly.map(c => `<div><span>Challenge · ${c.t}</span><span>+${num(c.r)}</span></div>`).join('')}<div class="tot"><span>Balance</span><span>${num(P.points)} pts</span></div></div>`;
       html += `<div class="note">Reaction time runs from the green light until the front tire clears the stage beam. The car needs ${(race.player.run.rollout / 0.0254).toFixed(1)} in of rollout, so leave on the last amber, not on the green.</div>`;
@@ -226,8 +227,8 @@ const UI = (function () {
     }
     const r = res.run, a = res.aiRun, solo = res.solo, dist = race.spec.dist;
     const c = (v, d) => v === undefined || v === null ? '—' : v.toFixed(d === undefined ? 3 : d);
-    const rtCell = (rt, foul) => foul ? `<span class="grade red">RED</span> ${rt === null ? '' : c(rt)}` : (rt === null ? '—' : c(rt) + gradeChip(rt));
-    html += `<div class="hdr">${race.mode === 'tournament' ? 'Tournament · round ' + race.round : race.mode === 'bracket' ? 'Bracket race' : race.mode === 'clock' ? 'Beat the clock' : 'Quick race'}<small>${dist} FT · ${P.settings.tree === 'pro' ? 'PRO TREE' : 'SPORTSMAN TREE'} · ${res.diff.label.toUpperCase()}${P.settings.deep ? ' · DEEP STAGED' : ''}</small></div>`;
+    const rtCell = (rt, foul) => foul ? `<span class="grade red">RED</span> ${rt === null ? '' : c(rt)}` : (rt === null ? 'no time' : c(rt) + gradeChip(rt));
+    html += `<div class="hdr">${race.mode === 'tournament' ? 'Tournament · round ' + race.round : race.mode === 'bracket' ? 'Bracket race' : race.mode === 'clock' ? 'Beat the clock' : 'Quick race'}<small>${dist} FT · ${race.treeType === 'pro' ? 'PRO TREE .400' : 'SPORTSMAN TREE .500'} · ${res.diff.label.toUpperCase()}${P.settings.deep ? ' · DEEP STAGED' : ''}</small></div>`;
     html += `<div class="verdict ${res.win ? 'win' : 'lose'}">${race.mode === 'clock' ? (res.win ? 'UNDER THE CLOCK' : 'OVER THE CLOCK') : (res.win ? (res.holeshot ? 'HOLESHOT WIN' : 'WIN LIGHT') : 'LOSS')}</div>`;
     let mtxt = res.reason;
     if (res.margin !== null && !res.foul && !res.aiFoul) mtxt += ` · margin ${Math.abs(res.margin).toFixed(4)} s (about ${(Math.abs(res.margin) * (r.v || 1) / 0.3048).toFixed(0)} ft)`;
