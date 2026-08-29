@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOLESHOT — Pro Drag Racing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Holeshot">
+<meta name="theme-color" content="#0B0C0E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --asphalt:#0B0C0E; --rubber:#17191C; --panel:#1F2226; --line:#2C3036;
+  --concrete:#D9D3C4; --concrete-dim:#9B958A; --amber:#FFB000; --amber-dim:#5A3E00;
+  --green:#2BE35A; --red:#FF2A3D; --paper:#F1EBDC; --ink:#1A1713;
+  --display:"Avenir Next Condensed","Arial Narrow","Roboto Condensed","Helvetica Neue",sans-serif;
+  --body:"Avenir Next","Avenir","Helvetica Neue",Helvetica,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--asphalt);color:var(--concrete);font-family:var(--body);overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+body{position:fixed;inset:0}
+button{font-family:inherit;color:inherit}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#stage{position:absolute;inset:0;display:block;width:100%;height:100%}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:calc(var(--sat) + 14px) calc(var(--sar) + 16px) calc(var(--sab) + 16px) calc(var(--sal) + 16px);background:radial-gradient(120% 70% at 50% 0%,#1a1c20 0%,var(--asphalt) 60%);overflow:hidden}
+.screen.on{display:flex}
+.screen .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:12px}
+h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0}
+h1{font-size:64px;line-height:.9;font-weight:700}
+h2{font-size:28px;font-weight:700}
+h3{font-size:18px;font-weight:600;color:var(--concrete-dim)}
+.eyebrow{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+.muted{color:var(--concrete-dim)}
+.mono{font-family:var(--mono)}
+.row{display:flex;gap:10px;align-items:center}
+.row.between{justify-content:space-between}
+.grow{flex:1}
+.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--concrete);font-family:var(--display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:14px 18px;border-radius:6px;cursor:pointer;text-align:left;position:relative}
+.btn:active{transform:translateY(1px);background:#2a2e34}
+.btn.primary{background:var(--amber);color:#1A1200;border-color:var(--amber)}
+.btn.primary:active{background:#e6a000}
+.btn.ghost{background:transparent}
+.btn.small{font-size:15px;padding:9px 12px}
+.btn.wide{width:100%}
+.btn.icon{width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:22px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btn .sub{display:block;font-family:var(--body);font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;color:inherit;opacity:.75;margin-top:2px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.topbar h2{flex:1}
+.points{font-family:var(--mono);font-size:15px;color:var(--amber);background:#2a1f00;border:1px solid #4a3600;padding:6px 10px;border-radius:4px;white-space:nowrap}
+/* ---- menu ---- */
+#menu{justify-content:center}
+.hero{display:flex;gap:18px;align-items:stretch;margin-bottom:22px}
+.hero .tree{width:92px;flex:none}
+.hero .title{display:flex;flex-direction:column;justify-content:flex-end}
+.hero .title .eyebrow{margin-bottom:8px}
+.hero .title p{margin:8px 0 0;color:var(--concrete-dim);font-size:14px;line-height:1.35;max-width:32ch}
+.carline{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:6px;background:var(--rubber);margin-bottom:10px}
+.carline .swatch{width:14px;height:34px;border-radius:2px;flex:none}
+.carline .name{font-family:var(--display);font-size:20px;text-transform:uppercase;font-weight:600}
+.carline .spec{font-family:var(--mono);font-size:12px;color:var(--concrete-dim)}
+/* ---- garage ---- */
+.card{border:1px solid var(--line);border-radius:6px;background:var(--rubber);padding:12px 14px;margin-bottom:10px}
+.card.sel{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+.card.locked{opacity:.85}
+.card .head{display:flex;align-items:baseline;gap:10px}
+.card .head .cls{font-family:var(--display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.card .head .name{font-family:var(--display);font-size:22px;text-transform:uppercase;font-weight:700;flex:1}
+.card .head .price{font-family:var(--mono);font-size:14px;color:var(--amber)}
+.card .specs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.card .specs div{font-family:var(--mono);font-size:12px;color:var(--concrete-dim)}
+.card .specs b{display:block;font-family:var(--display);font-size:20px;font-weight:600;color:var(--concrete);letter-spacing:.02em}
+.card p{margin:4px 0 8px;font-size:13px;color:var(--concrete-dim)}
+.upg{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.upg .nm{font-family:var(--display);font-size:17px;text-transform:uppercase;width:120px}
+.upg .dots{display:flex;gap:4px;flex:1}
+.upg .dots i{width:16px;height:8px;background:#2c3036;border-radius:2px}
+.upg .dots i.on{background:var(--amber)}
+.upg .btn{min-width:96px;text-align:center}
+.tune{border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--amber);touch-action:pan-x}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:3px;background:#2a2e34;color:var(--concrete-dim);margin-right:6px}
+.chip.on{background:#3a2a00;color:var(--amber)}
+/* ---- toggles ---- */
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;padding:11px 6px;font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.04em;color:var(--concrete-dim);cursor:pointer}
+.seg button.on{background:var(--amber);color:#1A1200}
+.field{margin-bottom:14px}
+.field label{display:block;font-family:var(--display);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--concrete-dim);margin-bottom:6px}
+.field .hint{font-size:12px;color:var(--concrete-dim);margin-top:5px}
+input[type=text]{width:100%;background:var(--rubber);border:1px solid var(--line);color:var(--concrete);font-family:var(--mono);font-size:18px;padding:10px;border-radius:6px;text-transform:uppercase}
+/* ---- lists ---- */
+.lb{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+.lb th{text-align:left;font-family:var(--display);font-size:12px;letter-spacing:.14em;color:var(--concrete-dim);padding:6px 4px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.lb td{padding:8px 4px;border-bottom:1px solid #1c1f23}
+.lb tr.me td{color:var(--amber)}
+.chal{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.chal .mark{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.chal.done .mark{border-color:var(--green);background:#0d2a15;color:var(--green)}
+.chal .t{font-family:var(--display);font-size:18px;text-transform:uppercase;font-weight:600}
+.chal .d{font-size:12px;color:var(--concrete-dim)}
+.chal .r{font-family:var(--mono);font-size:13px;color:var(--amber);white-space:nowrap}
+/* ---- race HUD DOM ---- */
+#race{display:none;position:absolute;inset:0}
+#race.on{display:block}
+.padbtn{position:absolute;bottom:calc(var(--sab) + 14px);width:30vw;max-width:150px;height:30vw;max-height:150px;border-radius:50%;border:2px solid rgba(255,255,255,.18);background:radial-gradient(circle at 50% 35%,#2a2e34,#101214 70%);color:var(--concrete);font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:none;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,.6);touch-action:none;padding:0}
+.padbtn.on{display:flex}
+.padbtn .sub{font-size:11px;font-weight:400;letter-spacing:.1em;opacity:.7;margin-top:4px}
+.padbtn:active,.padbtn.held{background:radial-gradient(circle at 50% 35%,#4a3400,#1a1200 70%);border-color:var(--amber);color:var(--amber)}
+#btnL{left:calc(var(--sal) + 14px)}
+#btnR{right:calc(var(--sar) + 14px)}
+#btnR.shift{border-color:rgba(43,227,90,.35)}
+#btnR.shift:active{background:radial-gradient(circle at 50% 35%,#0d3a1a,#06170b 70%);border-color:var(--green);color:var(--green)}
+.tinybtn{position:absolute;top:calc(var(--sat) + 10px);right:calc(var(--sar) + 12px);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:var(--concrete);font-family:var(--display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-radius:5px;display:none}
+.tinybtn.on{display:block}
+#skipBtn{right:auto;left:50%;transform:translateX(-50%);top:calc(var(--sat) + 66px)}
+#coach{position:absolute;left:50%;transform:translateX(-50%);bottom:40%;max-width:min(80vw,420px);text-align:center;font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--concrete);background:rgba(0,0,0,.55);padding:8px 14px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .25s}
+#coach.on{opacity:1}
+/* ---- timeslip ---- */
+#slip{position:absolute;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.35);z-index:5}
+#slip.on{display:flex}
+.paper{width:min(92vw,420px);max-height:calc(100% - var(--sat) - 12px);overflow-y:auto;background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:13px;padding:18px 20px calc(var(--sab) + 18px);border-radius:8px 8px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.6);animation:printout .55s cubic-bezier(.2,.9,.3,1) both;touch-action:pan-y}
+@keyframes printout{from{transform:translateY(105%)}to{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.paper{animation:none}}
+.paper .hdr{font-family:var(--display);font-size:22px;letter-spacing:.14em;text-transform:uppercase;text-align:center;border-bottom:2px dashed #b9b2a3;padding-bottom:8px;margin-bottom:10px}
+.paper .hdr small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.2em;font-weight:400;color:#6e675c;margin-top:2px}
+.paper table{width:100%;border-collapse:collapse}
+.paper td,.paper th{padding:3px 2px;text-align:right;font-weight:400}
+.paper th{text-align:left;color:#6e675c;font-size:11px;letter-spacing:.1em}
+.paper td:first-child{text-align:left;color:#6e675c}
+.paper .win td{font-weight:700}
+.paper .verdict{font-family:var(--display);font-size:34px;text-align:center;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 2px;line-height:1}
+.paper .verdict.lose{color:#7a1f28}
+.paper .verdict.win{color:#0f5a2a}
+.paper .margin{text-align:center;font-size:12px;color:#6e675c;margin-bottom:10px}
+.paper .pts{border-top:2px dashed #b9b2a3;margin-top:10px;padding-top:8px}
+.paper .pts div{display:flex;justify-content:space-between;padding:2px 0}
+.paper .pts .tot{font-weight:700;border-top:1px solid #b9b2a3;margin-top:4px;padding-top:6px;font-size:15px}
+.paper .actions{display:flex;gap:8px;margin-top:14px}
+.paper .btn{background:var(--ink);color:var(--paper);border-color:var(--ink);flex:1;text-align:center;font-size:17px;padding:12px 8px}
+.paper .btn.alt{background:transparent;color:var(--ink)}
+.paper .grade{font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:3px;background:#e3dccb;color:#3b3629;margin-left:4px}
+.paper .grade.perfect{background:#0f5a2a;color:#fff}
+.paper .grade.great{background:#1f7a3a;color:#fff}
+.paper .grade.good{background:#cfa100;color:#1a1200}
+.paper .grade.red{background:#9b1d29;color:#fff}
+.paper .note{font-size:11px;color:#6e675c;margin-top:6px;line-height:1.4}
+.toast{position:absolute;left:50%;top:calc(var(--sat) + 70px);transform:translateX(-50%);background:var(--amber);color:#1A1200;font-family:var(--display);font-size:16px;letter-spacing:.06em;text-transform:uppercase;padding:10px 16px;border-radius:5px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+.tut{font-size:13px;color:var(--concrete-dim);line-height:1.45}
+.tut b{color:var(--concrete)}
+.check{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.04em;color:var(--concrete);margin:14px 0 12px;cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--amber);margin:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-family:var(--mono);font-size:13px}
+.kv span:nth-child(odd){color:var(--concrete-dim)}
+@media (min-width:700px){.screen{padding-left:max(var(--sal),calc(50% - 300px));padding-right:max(var(--sar),calc(50% - 300px))}}
+@media (max-height:700px){#menu{justify-content:flex-start;overflow-y:auto;touch-action:pan-y}h1{font-size:44px}.hero .tree{width:60px}.hero{margin-bottom:12px}.btn{padding:11px 14px}}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<!-- ================= MENU ================= -->
+<section id="menu" class="screen on">
+  <div class="hero">
+    <canvas class="tree" id="menuTree" width="184" height="440"></canvas>
+    <div class="title">
+      <div class="eyebrow">Pro drag racing · quarter mile</div>
+      <h1>HOLE<br>SHOT</h1>
+      <p>Cut a light, hit your shifts, take the stripe first. Real NHRA timing from the 60-foot to the trap.</p>
+    </div>
+  </div>
+  <div class="carline" id="menuCar"></div>
+  <p class="tut" id="saveNote" style="display:none;margin:0 0 10px;color:var(--amber)">This viewer can't save progress between sessions. Add the game to your Home Screen (see README) to keep your garage and points.</p>
+  <div class="stack">
+    <button class="btn primary" id="mRace">Race<span class="sub" id="mRaceSub">Quick race vs. the computer</span></button>
+    <div class="row">
+      <button class="btn grow" id="mModes">Modes<span class="sub">Bracket · Tournament · Drill</span></button>
+      <button class="btn grow" id="mGarage">Garage<span class="sub">Cars, upgrades, tuning</span></button>
+    </div>
+    <div class="row">
+      <button class="btn grow" id="mChal">Challenges<span class="sub" id="mChalSub"></span></button>
+      <button class="btn grow" id="mLB">Leaderboard<span class="sub">Quickest runs</span></button>
+    </div>
+    <div class="row">
+      <button class="btn grow ghost" id="mHow">How to race</button>
+      <button class="btn grow ghost" id="mSettings">Settings</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MODES ================= -->
+<section id="modes" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Race modes</h2><div class="points" id="ptsModes"></div></div>
+  <div class="scroll">
+    <div class="field"><label>Difficulty</label>
+      <div class="seg" id="segDiff"><button data-v="rookie">Rookie</button><button data-v="pro">Pro</button><button data-v="elite">Elite</button></div>
+      <div class="hint" id="diffHint"></div></div>
+    <div class="stack">
+      <button class="btn primary" data-mode="quick">Quick race<span class="sub">One pass against a rival in your class. Points for the win, the light and every perfect shift.</span></button>
+      <button class="btn" data-mode="bracket">Bracket race<span class="sub">Dial in your ET. Slower dial leaves first. Run quicker than your dial and you break out.</span></button>
+      <button class="btn" data-mode="tournament">Tournament ladder<span class="sub">Three rounds: Rookie, Pro, Elite. Lose and you load the trailer. Payout doubles each round.</span></button>
+      <button class="btn" data-mode="drill">Reaction drill<span class="sub">Five trees, 60-foot dashes only. Chase the perfect .000 light.</span></button>
+      <button class="btn" data-mode="clock">Beat the clock<span class="sub" id="clockSub">Solo pass. Run under the class target ET for a bonus.</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BRACKET DIAL ================= -->
+<section id="dial" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Dial-in</h2></div>
+  <div class="scroll">
+    <p class="tut">Predict your ET. The car with the slower dial-in leaves first by the difference. Cross the stripe first without running quicker than your dial and you win. Run quicker than your dial and you <b>break out</b> and lose (unless your rival breaks out by more).</p>
+    <div class="field"><label>Your dial-in (seconds)</label>
+      <div class="row"><button class="btn icon" id="dialMinus">−</button><div class="mono" style="font-size:34px;flex:1;text-align:center" id="dialVal">0.00</div><button class="btn icon" id="dialPlus">+</button></div>
+      <div class="hint" id="dialHint"></div></div>
+    <button class="btn primary wide" id="dialGo">Stage up</button>
+  </div>
+</section>
+
+<!-- ================= GARAGE ================= -->
+<section id="garage" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Garage</h2><div class="points" id="ptsGarage"></div></div>
+  <div class="scroll" id="garageList"></div>
+</section>
+
+<!-- ================= CHALLENGES ================= -->
+<section id="challenges" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Challenges</h2><div class="points" id="ptsChal"></div></div>
+  <div class="scroll" id="chalList"></div>
+</section>
+
+<!-- ================= LEADERBOARD ================= -->
+<section id="leaderboard" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Leaderboard</h2></div>
+  <div class="seg" id="lbTabs" style="margin-bottom:12px"><button data-v="quarter" class="on">¼ mile</button><button data-v="nitro">Nitro 1000 ft</button><button data-v="rt">Reaction</button><button data-v="mine">My bests</button></div>
+  <div class="scroll" id="lbBody"></div>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section id="settings" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>Settings</h2></div>
+  <div class="scroll">
+    <div class="field"><label>Driver name (leaderboard)</label><input type="text" id="setName" maxlength="12" autocomplete="off"></div>
+    <div class="field"><label>Shifting</label><div class="seg" id="segShift"><button data-v="manual">Manual</button><button data-v="auto">Auto</button></div><div class="hint">Manual pays full points and unlocks shift challenges. Auto shifts at the sweet spot for you (×0.8 points).</div></div>
+    <div class="field"><label>Christmas tree</label><div class="seg" id="segTree"><button data-v="auto">By class</button><button data-v="full">Sportsman</button><button data-v="pro">Pro</button></div><div class="hint">Sportsman tree: the three ambers count down .500 apart, then green. Pro tree: all three ambers flash together and the green comes .400 later — that's what Pro Stock, Pro Mod and the nitro classes run. "By class" uses the sportsman tree for street cars and the pro tree for the pro cars.</div></div>
+    <div class="field"><label>Staging</label><div class="seg" id="segStage"><button data-v="shallow">Shallow</button><button data-v="deep">Deep</button></div><div class="hint">Deep staging rolls the tire forward: quicker reaction, slower ET, easier to red-light.</div></div>
+    <div class="field"><label>Lane</label><div class="seg" id="segLane"><button data-v="left">Left</button><button data-v="right">Right</button></div></div>
+    <div class="field"><label>Time of day</label><div class="seg" id="segTime"><button data-v="day">Day</button><button data-v="night">Night</button></div></div>
+    <div class="field"><label>Sound</label><div class="seg" id="segSound"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="field"><label>Sound route</label><div class="seg" id="segRoute"><button data-v="media">Media player</button><button data-v="direct">Direct</button></div><div class="hint">Media player plays through iPhone's media channel, so it works with the silent switch / Focus on. Direct has slightly lower latency but iOS mutes it in silent mode.</div>
+      <div class="row" style="margin-top:8px"><button class="btn small" id="testSound">Play test tone</button><span class="hint mono" id="audioStatus"></span></div></div>
+    <div class="field"><label>Progress</label><button class="btn small" id="resetBtn">Reset all progress</button></div>
+    <p class="tut" id="storageNote"></p>
+  </div>
+</section>
+
+<!-- ================= HOW TO ================= -->
+<section id="howto" class="screen">
+  <div class="topbar"><button class="btn icon" data-back>‹</button><h2>How to race</h2></div>
+  <div class="scroll tut">
+    <p><b>1. Burnout.</b> Hold BURNOUT to heat the tires. The bar turns green when they're ready; too long and they go greasy. Skip it and you launch on cold rubber.</p>
+    <p><b>2. Stage.</b> Press STAGE and keep your thumb down. The car creeps into the pre-stage beam, then the stage beam. Both bulbs lit means you're in.</p>
+    <p><b>3. The tree.</b> Keep holding LAUNCH: the engine sits on the two-step at your launch RPM. Once both cars are in, the autostart fires the tree a random moment later. Street cars run the sportsman tree: three ambers count down half a second apart. The pro cars run the pro tree: all three ambers flash at once, green four-tenths later. <b>Let go on the last amber</b> – letting go is the launch, and the car needs time to roll out of the beam, so releasing on green is late. Let go before the tree is done and you red-light. Never let go and you sit there with no time while the rival takes the win.</p>
+    <p><b>4. Shift.</b> The tach has a green window for each gear. Tap SHIFT inside it for a perfect shift. Early shifts bog the engine; hitting the limiter costs time.</p>
+    <p><b>5. Wheelspin.</b> If the tach flares and the car doesn't move, you're spinning. Hold PEDAL to lift off the gas for a moment and hook back up. Lower your launch RPM in the garage if it keeps happening.</p>
+    <p><b>Reading the slip.</b> R/T is reaction time (.000 is perfect). 60' is the launch. The 660' speed and the trap speed at the stripe tell you how much power got to the track. A <b>holeshot win</b> is beating a quicker car by leaving first.</p>
+    <p><b>Points.</b> Earn points for every pass. Winning, holeshots, great lights, perfect shifts and personal bests all pay. Spend them in the garage on cars, tires, engines and transmissions.</p>
+    <label class="check"><input type="checkbox" id="howSkip"> Don't show this again</label>
+    <button class="btn primary wide" id="howGo">Got it — stage up</button>
+  </div>
+</section>
+
+<!-- ================= RACE ================= -->
+<div id="race">
+  <button class="padbtn" id="btnL">LAUNCH<span class="sub">hold · release to go</span></button>
+  <button class="padbtn" id="btnR">SHIFT</button>
+  <button class="tinybtn" id="quitBtn">Quit</button>
+  <button class="tinybtn" id="skipBtn">Skip burnout</button>
+  <div id="coach"></div>
+</div>
+
+<!-- ================= TIMESLIP ================= -->
+<div id="slip"><div class="paper" id="paper"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
