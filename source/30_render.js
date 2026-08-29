@@ -547,7 +547,8 @@ const R = (function () {
     txt(String(Math.round(h.rpm / 10) * 10), cx, cy + rad * 0.5, rad * 0.26, '#f1ebdc', 'center', MONO, 600);
     txt('RPM', cx, cy + rad * 0.78, rad * 0.15, '#8d8880', 'center');
     // readouts: a row above the tach in portrait, flanking it in landscape
-    const ry = portrait ? cy - rad * 1.1 - Math.max(30, H * 0.045) : cy;
+    const btnTop = H - sab - 14 - btn; // top edge of the thumb buttons — the readouts must clear it
+    const ry = portrait ? Math.min(cy - rad * 1.1 - Math.max(30, H * 0.045), btnTop - rad * 0.9) : cy;
     const gx = portrait ? W * 0.22 : cx - rad * 2.0, sx = portrait ? W / 2 : cx + rad * 2.0;
     const lx = portrait ? W * 0.78 : cx, ly = portrait ? ry + rad * 0.05 : cy - rad * 1.5;
     txt('GEAR', gx, ry - rad * 0.42, rad * 0.2, '#8d8880', 'center');

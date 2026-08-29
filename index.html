@@ -122,7 +122,7 @@ input[type=text]{width:100%;background:var(--rubber);border:1px solid var(--line
 .tinybtn{position:absolute;top:calc(var(--sat) + 10px);right:calc(var(--sar) + 12px);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:var(--concrete);font-family:var(--display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-radius:5px;display:none}
 .tinybtn.on{display:block}
 #skipBtn{right:auto;left:50%;transform:translateX(-50%);top:calc(var(--sat) + 66px)}
-#coach{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + min(30vw,150px) + 34px);max-width:min(80vw,420px);text-align:center;font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--concrete);background:rgba(0,0,0,.55);padding:8px 14px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .25s}
+#coach{position:absolute;left:50%;transform:translateX(-50%);bottom:40%;max-width:min(80vw,420px);text-align:center;font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--concrete);background:rgba(0,0,0,.55);padding:8px 14px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .25s}
 #coach.on{opacity:1}
 /* ---- timeslip ---- */
 #slip{position:absolute;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.35);z-index:5}
@@ -1452,7 +1452,8 @@ const R = (function () {
     txt(String(Math.round(h.rpm / 10) * 10), cx, cy + rad * 0.5, rad * 0.26, '#f1ebdc', 'center', MONO, 600);
     txt('RPM', cx, cy + rad * 0.78, rad * 0.15, '#8d8880', 'center');
     // readouts: a row above the tach in portrait, flanking it in landscape
-    const ry = portrait ? cy - rad * 1.1 - Math.max(30, H * 0.045) : cy;
+    const btnTop = H - sab - 14 - btn; // top edge of the thumb buttons — the readouts must clear it
+    const ry = portrait ? Math.min(cy - rad * 1.1 - Math.max(30, H * 0.045), btnTop - rad * 0.9) : cy;
     const gx = portrait ? W * 0.22 : cx - rad * 2.0, sx = portrait ? W / 2 : cx + rad * 2.0;
     const lx = portrait ? W * 0.78 : cx, ly = portrait ? ry + rad * 0.05 : cy - rad * 1.5;
     txt('GEAR', gx, ry - rad * 0.42, rad * 0.2, '#8d8880', 'center');
@@ -2145,7 +2146,8 @@ const UI = (function () {
 
   /* ---------- race screen ---------- */
   const btnL = () => $('#btnL'), btnR = () => $('#btnR');
-  function enterRace() { lPressed = false; btnL().classList.remove('held'); $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
+  function placeCoach() { const c = $('#coach'); c.style.bottom = Math.round(R.H * (R.portrait ? 0.41 : 0.5) + 6) + 'px'; }
+  function enterRace() { lPressed = false; btnL().classList.remove('held'); placeCoach(); $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
   function leaveRace() { $('#slip').classList.remove('on'); renderMenu(); }
   function setBtn(btn, label, sub, on) { btn.innerHTML = label + (sub ? `<span class="sub">${sub}</span>` : ''); btn.classList.toggle('on', !!on); }
   function phase(ph, race) {
@@ -2248,7 +2250,7 @@ const UI = (function () {
 
   /* ---------- boot ---------- */
   function init() {
-    readSafe(); window.addEventListener('resize', () => { readSafe(); R.resize(); }); window.addEventListener('orientationchange', () => setTimeout(() => { readSafe(); R.resize(); }, 250));
+    readSafe(); window.addEventListener('resize', () => { readSafe(); R.resize(); placeCoach(); }); window.addEventListener('orientationchange', () => setTimeout(() => { readSafe(); R.resize(); placeCoach(); }, 250));
     R.attach($('#stage')); R.clear();
     Game.setUI({ enterRace, leaveRace, phase, coach, showSlip, safe });
     Sfx.setRoute(Game.P.settings.route || 'media');

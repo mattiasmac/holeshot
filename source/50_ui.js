@@ -174,7 +174,8 @@ const UI = (function () {
 
   /* ---------- race screen ---------- */
   const btnL = () => $('#btnL'), btnR = () => $('#btnR');
-  function enterRace() { lPressed = false; btnL().classList.remove('held'); $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
+  function placeCoach() { const c = $('#coach'); c.style.bottom = Math.round(R.H * (R.portrait ? 0.41 : 0.5) + 6) + 'px'; }
+  function enterRace() { lPressed = false; btnL().classList.remove('held'); placeCoach(); $$('.screen').forEach(s => s.classList.remove('on')); $('#race').classList.add('on'); $('#quitBtn').classList.add('on'); $('#slip').classList.remove('on'); if (menuTreeRaf) { cancelAnimationFrame(menuTreeRaf); menuTreeRaf = null; } }
   function leaveRace() { $('#slip').classList.remove('on'); renderMenu(); }
   function setBtn(btn, label, sub, on) { btn.innerHTML = label + (sub ? `<span class="sub">${sub}</span>` : ''); btn.classList.toggle('on', !!on); }
   function phase(ph, race) {
@@ -277,7 +278,7 @@ const UI = (function () {
 
   /* ---------- boot ---------- */
   function init() {
-    readSafe(); window.addEventListener('resize', () => { readSafe(); R.resize(); }); window.addEventListener('orientationchange', () => setTimeout(() => { readSafe(); R.resize(); }, 250));
+    readSafe(); window.addEventListener('resize', () => { readSafe(); R.resize(); placeCoach(); }); window.addEventListener('orientationchange', () => setTimeout(() => { readSafe(); R.resize(); placeCoach(); }, 250));
     R.attach($('#stage')); R.clear();
     Game.setUI({ enterRace, leaveRace, phase, coach, showSlip, safe });
     Sfx.setRoute(Game.P.settings.route || 'media');
