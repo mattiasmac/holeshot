@@ -113,7 +113,7 @@ const Game = (function () {
     S.autoShift = P.settings.auto || race.spec.trans === 'single' || race.spec.trans === 'none';
     S.tree.left = race.laneSign === -1 ? race.player.lights : race.ai.lights; S.tree.right = race.laneSign === 1 ? race.player.lights : race.ai.lights;
     S.board = { me: null, opp: null }; S.hud = { rt: '—', et: '0.000', msg: null, sub: null };
-    S.opp = race.solo ? null : { x: -1, view: race.car.view, color: race.ai.color, accent: '#dddddd', spinning: false, progress: 0 };
+    S.opp = race.solo ? null : { x: -1, id: race.car.id, view: race.car.view, color: race.ai.color, accent: '#dddddd', spinning: false, progress: 0 };
     S.player = { progress: 0 };
     R.particles.length = 0;
     if (P.settings.sound) { Sfx.unlock(); Sfx.startEngine(race.spec.sound); Sfx.setEnabled(true); } else Sfx.setEnabled(false);

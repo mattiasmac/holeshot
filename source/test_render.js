@@ -3,7 +3,7 @@ const PH = require('./10_physics.js'); global.PH = PH;
 global.window = { innerWidth: 390, innerHeight: 844, devicePixelRatio: 2 };
 global.document = { documentElement: {} };
 const calls = {};
-const ctx = new Proxy({}, { get(t, k) { if (k === 'canvas') return null; if (['fillStyle','strokeStyle','lineWidth','globalAlpha','font','textAlign','textBaseline','shadowBlur','shadowColor','lineCap'].includes(k)) return t[k]; return (...a) => { calls[k] = (calls[k] || 0) + 1; if (k === 'createLinearGradient') return { addColorStop() {} }; if (k === 'measureText') return { width: 10 }; }; }, set(t, k, v) { t[k] = v; return true; } });
+const ctx = new Proxy({}, { get(t, k) { if (k === 'canvas') return null; if (['fillStyle','strokeStyle','lineWidth','globalAlpha','font','textAlign','textBaseline','shadowBlur','shadowColor','lineCap'].includes(k)) return t[k]; return (...a) => { calls[k] = (calls[k] || 0) + 1; if (k === 'createLinearGradient' || k === 'createRadialGradient') return { addColorStop() {} }; if (k === 'save' || k === 'restore' || k === 'clip') return; if (k === 'measureText') return { width: 10 }; }; }, set(t, k, v) { t[k] = v; return true; } });
 const cv = { getContext: () => ctx, style: {} };
 const src = fs.readFileSync('30_render.js', 'utf8');
 const R = new Function('PH', 'window', 'document', src + '; return R;')(PH, global.window, global.document);

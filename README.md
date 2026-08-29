@@ -45,7 +45,7 @@ iOS mutes Web Audio whenever the ring/silent switch (or Action button) is set to
 
 1. **Burnout** — hold BURNOUT to heat the tires; release when the bar is green. Greasy (red) is worse than cold.
 2. **Stage** — press STAGE and keep your thumb down; the car creeps into the beams. Pre-stage bulb, then stage bulb. Deep staging (Settings) rolls further in: quicker reaction time, slower ET, easier to red-light — exactly like the real thing.
-3. **Tree** — keep holding LAUNCH. The engine sits on the two-step at your launch RPM. When both cars are staged, the autostart fires the tree at a random moment. **Let go on the last amber** — letting go is the launch: the car needs real rollout time to clear the beam, so releasing on green is late and releasing early is a red light. Street cars run the sportsman tree (ambers count down .500 apart); the pro cars run the pro tree (all three ambers at once, green .400 later). Settings lets you force either.
+3. **Tree** — keep holding LAUNCH. The engine sits on the two-step at your launch RPM. When both cars are staged, the autostart fires the tree at a random moment. **Let go on the last amber** — letting go is the launch: the car needs real rollout time to clear the beam, so releasing on green is late and releasing early is a red light. Pro tree (.400) or Sportsman tree (.500) in Settings.
 4. **Shift** — the tach shows a green window for each gear. Perfect shifts pay; early ones bog, late ones bounce off the limiter. Auto mode shifts for you at ×0.8 points.
 5. **Wheelspin** — if the tach flares and the car doesn't move, hold PEDAL to lift off the gas for a moment. Lower the launch RPM in the garage if it keeps happening; raise it if the car bogs.
 
@@ -59,6 +59,18 @@ The timeslip after every pass shows R/T, 60', 330', 660' with speed, 1000', ET a
 - **Physics:** per-car torque curves scaled to real horsepower, real gear ratios (Tremec 6-speed, GT-R DCT, ZF 8-speed, Liberty clutchless 5-speed), final drives, tire diameters and growth, drivetrain loss, aero drag, downforce, weight transfer solved implicitly at the grip limit, wheelie bars, converter multiplication for automatics, clutch/converter slip on the launch, torque-converter and clutch-slip time constants, shift cut times (clutchless 50 ms vs H-pattern 300 ms), rev-limiter fuel cut, tire temperature, and the pedal-to-hook mechanic.
 - **Calibration:** every car was simulated and tuned to its real-world reference before the game code was written. Stock, warm tires, perfect driver: Civic Type R 13.2 @ 106, Mustang GT 12.24 @ 114, GT-R 10.8 @ 124, Hellcat 11.2 @ 129, Z06 10.4 @ 132, Plaid 9.24 @ 152, Demon 170 8.88 @ 151 (NHRA-certified 8.91 @ 151), Pro Stock 6.55 @ 212 with a 1.01 60-ft (real: 6.5 @ 212, ~1.0), Pro Mod 5.5 @ 247, Funny Car 3.83 @ 333, Top Fuel 3.68 @ 333 with an 0.83 60-ft (real: 3.68 @ 335, 0.83).
 - **Sound:** synthesized in Web Audio from the firing frequency (rpm/60 × cylinders/2) with per-engine voicing — inline-four, V6, cross-plane V8, supercharged V8, flat-plane V8, 500-inch Pro Stock, blown Pro Mod, nitro — plus the limiter stutter, two-step chatter, air-shifter hiss and tire chirp. No audio files.
+
+## Graphics and how to make them more real
+
+The scene is drawn live on a 2D canvas — no image files — which is why the game is a single file that runs anywhere. Every car has its own rear-view body (Mustang tri-bar taillights, Hellcat light bar, Pro Stock wing and wheelie bars, Funny Car injector hat, Top Fuel rail with zoomies and rear wing), the track has a textured surface that streams past, a rubbered groove, a concrete launch pad, timing blocks, scoreboards, grandstands with a crowd, a tower and light poles, and the cockpit has A-pillars, a mirror that shows the rival when it's behind you, and a hood or scoop or dragster rails depending on the car.
+
+Two ways to push it further:
+
+1. **Drop in real images.** The renderer looks for optional files and uses them automatically when present:
+   - `assets/car/<id>.png` — the rival car from directly behind, transparent background, the ground contact at the bottom edge of the image, ~1000 px wide. Ids: `ctr`, `gt`, `gtr`, `hellcat`, `z06`, `plaid`, `demon`, `prostock`, `promod`, `funny`, `topfuel`.
+   - `assets/hood/<id>.png` — your own hood/cowl as seen from the driver's seat (transparent above the hood line), ~1200×500 px.
+   Missing files just fall back to the drawn version. Photograph or render them yourself, or use images you have the rights to.
+2. **Move the renderer to 3D.** Physics, timing, sound and progression are independent of the renderer (`R` in the source), so a three.js scene with glTF car models can replace the drawing code without touching the race logic.
 
 ## Files
 
