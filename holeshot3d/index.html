@@ -257,7 +257,7 @@ input[type=text]{width:100%;background:var(--rubber);border:1px solid var(--line
     <div class="field"><label>Staging</label><div class="seg" id="segStage"><button data-v="shallow">Shallow</button><button data-v="deep">Deep</button></div><div class="hint">Deep staging rolls the tire forward: quicker reaction, slower ET, easier to red-light.</div></div>
     <div class="field"><label>Lane</label><div class="seg" id="segLane"><button data-v="left">Left</button><button data-v="right">Right</button></div></div>
     <div class="field"><label>Time of day</label><div class="seg" id="segTime"><button data-v="day">Day</button><button data-v="night">Night</button></div></div>
-    <div class="field"><label>Graphics</label><div class="seg" id="segGfx"><button data-v="3d">3D</button><button data-v="classic">Classic</button></div><div class="hint">3D draws the track, stands and the rival's real car model with WebGL (needs the models folder, so it's off in the in-chat demo). Classic is the hand-drawn look. Changing this reloads the app.</div></div>
+    <div class="field"><label>Graphics</label><div class="seg" id="segGfx"><button data-v="3d">3D</button><button data-v="classic">Classic</button></div><div class="hint">3D draws the track, stands and the rival's real car model with WebGL (needs the models folder, so it's off in the in-chat demo). Classic is the hand-drawn look. Changing this reloads the app.</div><div class="hint mono" id="gfxStatus"></div></div>
     <div class="field"><label>Sound</label><div class="seg" id="segSound"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="field"><label>Sound route</label><div class="seg" id="segRoute"><button data-v="media">Media player</button><button data-v="direct">Direct</button></div><div class="hint">Media player plays through iPhone's media channel, so it works with the silent switch / Focus on. Direct has slightly lower latency but iOS mutes it in silent mode.</div>
       <div class="row" style="margin-top:8px"><button class="btn small" id="testSound">Play test tone</button><span class="hint mono" id="audioStatus"></span></div></div>
@@ -1018,8 +1018,8 @@ const R = (function () {
       drawMarkers(S);
       drawScoreboards(S);
       drawTree3D(S);
-      if (S.opp) drawOpponent(S);
       drawHaze();
+      if (S.opp) drawOpponent(S);
     }
     drawSpeed(S);
     drawParticles(night);
@@ -1248,6 +1248,7 @@ const R = (function () {
     const k = night ? 0.5 : 1;
     const view = o.view || 'car';
     const [cx, cy] = L(xw, 0, d + 6);
+    ctx.globalAlpha = 1 - clamp((d - 200) / 900, 0, 0.75); // atmospheric perspective instead of a haze band painted over the car
     const shg = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 5); shg.addColorStop(0, 'rgba(0,0,0,.6)'); shg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = shg; ctx.beginPath(); ctx.ellipse(cx, cy, s * 5.2, s * 1.2, 0, 0, Math.PI * 2); ctx.fill();
     const sideK = clamp((13 / (d + 6)) * 0.9, 0, 0.9);
@@ -1263,6 +1264,7 @@ const R = (function () {
     else if (view === 'funny') drawFunnyRear(cx, cy, s, o, k, sideK);
     else if (view === 'scoop') drawDoorCarRear(cx, cy, s, o, k, sideK, true);
     else drawDoorCarRear(cx, cy, s, o, k, sideK, false, SHAPES[o.id] || SHAPES.gt);
+    ctx.globalAlpha = 1;
     if (o.spinning && d < 400) spawnSmoke(cx, cy - s * 0.4, 1, s * 3.5, 0, -10, false);
   }
   function tire(x, y, w, h, s, k) {
@@ -1846,10 +1848,16 @@ const GL = (function () {
   }
   // screen position of a world point (for 2D smoke etc.)
   function project(x, y, z, W, H) { const THREE = T(); const v = new THREE.Vector3(x, y, z).project(camera); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H, v.z < 1]; }
+  function status() {
+    if (typeof window === 'undefined' || !window.THREE) return { mode: 'classic', why: 'three.js not found next to index.html (the in-chat demo has no vendor folder)' };
+    if (!ok) return { mode: 'classic', why: 'WebGL could not start on this device' };
+    const c = car.status === 'ready' ? 'car model loaded' : car.status === 'loading' ? 'loading car model' : car.status === 'failed' ? 'car model missing — models/ folder not found' : 'no car loaded yet';
+    return { mode: '3d', why: c };
+  }
   function debug() { return { ok, car: { id: car.id, status: car.status, wheels: car.wheels.length, L: car.L }, calls: renderer && renderer.info.render.calls, tris: renderer && renderer.info.render.triangles }; }
   // dev: render from an arbitrary camera (rear three-quarter view of the rival, for orientation checks)
   function debugView(pos, target, W, H) { if (!ok || !car.group) return; camera.clearViewOffset(); camera.fov = 45; camera.aspect = W / H; camera.updateProjectionMatrix(); camera.position.set(pos[0], pos[1], pos[2]); camera.lookAt(target[0], target[1], target[2]); renderer.render(scene, camera); }
-  return { init, resize, render, prime, project, debug, debugView, get active() { return ok; }, get carStatus() { return car.status; }, get _world() { return world; }, get _scene() { return scene; }, get _camera() { return camera; }, set yaw0(v) { YAW0 = v; } };
+  return { init, resize, render, prime, project, debug, debugView, status, get active() { return ok; }, get carStatus() { return car.status; }, get _world() { return world; }, get _scene() { return scene; }, get _camera() { return camera; }, set yaw0(v) { YAW0 = v; } };
 })();
 /* ===================== game logic ===================== */
 const Game = (function () {
@@ -2352,7 +2360,8 @@ const UI = (function () {
   }
   function renderMenu() {
     const P = Game.P, car = Game.carById(P.car), d = Game.dyno(car.id);
-    $('#menuCar').innerHTML = `<div class="swatch" style="background:${car.color};border:1px solid #444"></div><div class="grow"><div class="name">${car.maker} ${car.name}</div><div class="spec">${car.cls} · ${Math.round(Game.specFor(car.id).hp)} hp · dyno ${fmt(d.et)} @ ${d.mph.toFixed(0)}</div></div><div class="points">${num(P.points)} pts</div>`;
+    const gs = (typeof GL !== 'undefined') ? GL.status() : { mode: 'classic' };
+    $('#menuCar').innerHTML = `<div class="swatch" style="background:${car.color};border:1px solid #444"></div><div class="grow"><div class="name">${car.maker} ${car.name}</div><div class="spec">${car.cls} · ${Math.round(Game.specFor(car.id).hp)} hp · dyno ${fmt(d.et)} @ ${d.mph.toFixed(0)}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="points">${num(P.points)} pts</div><span class="chip ${gs.mode === '3d' ? 'on' : ''}" title="${gs.why || ''}">${gs.mode === '3d' ? '3D' : 'CLASSIC 2D'}</span></div>`;
     const done = Game.CHALLENGES.filter(c => P.challenges[c.id]).length;
     $('#mChalSub').textContent = `${done} of ${Game.CHALLENGES.length} complete`;
     $('#saveNote').style.display = Store.kind === 'memory' ? 'block' : 'none';
@@ -2477,6 +2486,7 @@ const UI = (function () {
     seg('#segTime', s.night ? 'night' : 'day', v => { s.night = v === 'night'; Game.save(); });
     seg('#segSound', s.sound ? 'on' : 'off', v => { s.sound = v === 'on'; Game.save(); Sfx.setEnabled(s.sound); });
     seg('#segGfx', s.gfx || '3d', v => { s.gfx = v; Game.save(); setTimeout(() => location.reload(), 250); });
+    { const gs = (typeof GL !== 'undefined') ? GL.status() : { mode: 'classic', why: '' }; $('#gfxStatus').textContent = `Now: ${gs.mode === '3d' ? '3D' : 'Classic 2D'} — ${gs.why}`; }
     seg('#segRoute', s.route || 'media', v => { s.route = v; Game.save(); Sfx.setRoute(v); setTimeout(() => { $('#audioStatus').textContent = Sfx.status(); }, 600); });
     $('#testSound').onclick = () => { Sfx.setEnabled(true); Sfx.testTone(); setTimeout(() => { $('#audioStatus').textContent = Sfx.status(); Sfx.setEnabled(s.sound); }, 700); };
     $('#audioStatus').textContent = Sfx.status();

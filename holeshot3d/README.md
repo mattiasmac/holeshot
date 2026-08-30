@@ -64,7 +64,7 @@ The timeslip after every pass shows R/T, 60', 330', 660' with speed, 1000', ET a
 
 With `vendor/three.min.js` and the `models/` folder in place (they're in the repo), the game renders the whole strip in WebGL: textured track and launch pad, walls and sponsor panels, grandstands with an instanced crowd, tower, light poles with real lights at night, cones and photocells, distance boards, scoreboards, the Christmas tree with glowing bulbs, sky, sun, clouds, stars and fog — and the rival is the real glTF model of your car, placed with the tuning in `models/cars.json` (rotation, scale to real length, prop trimming, wheel grounding, glass, running-gear kit). The 2D layer draws only cockpit, HUD and smoke on top. If three.js or a model is missing (the in-chat demo, for instance) it falls back to the drawn world automatically, and Settings → Graphics lets you choose Classic on purpose.
 
-`models/cars.json` carries the per-model tuning; the `yaw` values were re-verified for this renderer (nose down the track) and the Civic's paint materials named, so copy that file over the one in the repo. The renderer lives in `source/35_gl.js`. `source/gltest.html` + `source/glshot.js` render any car/scene to PNG through headless Chrome (`npm i @sparticuz/chromium puppeteer-core`, then `sh run_gl.sh glshot.js 390 844 '<shots json>' /tmp/out`), and `source/play.js` plays a whole race in the real `index.html` and screenshots it. Model credits are in `CREDITS.md`.
+The renderer lives in `source/35_gl.js`. `source/gltest.html` + `source/glshot.js` render any car/scene to PNG through headless Chrome (`npm i @sparticuz/chromium puppeteer-core`, then `sh run_gl.sh glshot.js 390 844 '<shots json>' /tmp/out`), and `source/play.js` plays a whole race in the real `index.html` and screenshots it. Model credits are in `CREDITS.md`.
 
 Next steps on the plan: your own car in 3D (hood from the same model at seat height, per-class cockpits, wheelie pitch, chutes, a mirror render), then paint reflections, night emissives, 3D smoke and heat shimmer.
 
@@ -81,6 +81,16 @@ Two ways to push it further:
 2. **Move the renderer to 3D.** Physics, timing, sound and progression are independent of the renderer (`R` in the source), so a three.js scene with glTF car models can replace the drawing code without touching the race logic.
 
 ## Files
+
+Everything the game needs is in this folder — upload it as-is and it runs:
+
+- `index.html` — the game. `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` — the Home Screen install.
+- `vendor/three.min.js` — three.js r185 with the glTF + meshopt loaders (3D mode).
+- `models/cars.json` + `models/<id>.glb` — the eleven car models and their tuning (3D mode). Keep `cars.json` from this folder: its yaw values are the verified ones.
+- `assets/` — optional real images for the Classic renderer.
+- `source/` — the same code split into modules, the build script, and the test tools.
+
+### Original file list
 
 - `index.html` — the whole game (physics, renderer, audio, UI, storage).
 - `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` — the Home Screen install.
